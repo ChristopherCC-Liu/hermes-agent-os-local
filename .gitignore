@@ -1,0 +1,15 @@
+node_modules
+dist
+.DS_Store
+*.log
+.vite
+.idea
+.vscode
+src/hermes/app.js
+src/hermes/office-renderer.js
+src/hermes/store.js
+src/hermes/org-engine.js
+src/hermes/shell.js
+src/hermes/data.js
+src/hermes/sections.js
+src/hermes/styles.css

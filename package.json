@@ -1,0 +1,21 @@
+{
+  "name": "hermes-agent-os",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Hermes Agent OS v0.1 — local Hermes client, no xAI",
+  "scripts": {
+    "assemble": "node scripts/assemble.mjs",
+    "predev": "node scripts/assemble.mjs",
+    "prestart": "node scripts/assemble.mjs",
+    "prebuild": "node scripts/assemble.mjs",
+    "prepreview": "node scripts/assemble.mjs",
+    "dev": "vite --host 127.0.0.1 --port 4177",
+    "start": "vite --host 127.0.0.1 --port 4177",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4177"
+  },
+  "devDependencies": {
+    "vite": "^6.3.5"
+  }
+}
