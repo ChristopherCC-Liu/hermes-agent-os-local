@@ -21,6 +21,8 @@ npm run dev
 
 macOS 也可双击 `start.command`。
 
+`npm run dev` 会先自动 assemble 源文件，不需要额外步骤。
+
 ## What you get without Hermes
 
 First load shows a 6-floor demo org (Support spawns Marketing / SEO / Engineering / Review / People). You can:
@@ -61,11 +63,10 @@ index.html              App shell
 src/main.js             Mounts the OS
 src/gateway.js          Browser Hermes client (no xAI)
 src/hermes/             Office renderer, store, UI
-scripts/assemble.mjs    Joins split source parts (runs automatically)
+src/hermes/packed/      Split sources (assembled on npm run dev)
+scripts/assemble.mjs    Joins packed files automatically
 public/favicon.svg
 ```
-
-Large files are stored as `src/hermes/parts/*` and assembled on `npm run dev` / `npm run build`.
 
 ## Production build
 
