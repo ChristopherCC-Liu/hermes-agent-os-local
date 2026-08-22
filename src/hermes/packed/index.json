@@ -1,0 +1,35 @@
+{
+  "app.js": [
+    "app.00.b64",
+    "app.01.b64",
+    "app.02.b64",
+    "app.03.b64"
+  ],
+  "styles.css": [
+    "styles.00.b64",
+    "styles.01.b64",
+    "styles.02.b64",
+    "styles.03.b64",
+    "styles.04.b64"
+  ],
+  "office-renderer.js": [
+    "office-renderer.00.b64",
+    "office-renderer.01.b64"
+  ],
+  "store.js": [
+    "store.00.b64",
+    "store.01.b64"
+  ],
+  "org-engine.js": [
+    "org-engine.00.b64"
+  ],
+  "shell.js": [
+    "shell.00.b64"
+  ],
+  "data.js": [
+    "data.00.b64"
+  ],
+  "sections.js": [
+    "sections.00.b64"
+  ]
+}
