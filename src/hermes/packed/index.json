@@ -9,7 +9,11 @@
     "styles.00.b64",
     "styles.01.b64",
     "styles.02.b64",
-    "styles.03.b64",
+    "styles.03a.b64",
+    "styles.03b.b64",
+    "styles.03c.b64",
+    "styles.03d.b64",
+    "styles.03e.b64",
     "styles.04.b64"
   ],
   "office-renderer.js": [
