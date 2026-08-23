@@ -104,6 +104,36 @@ export function saveConnection(config) {
   return { ...next, apiKey: "" };
 }
 
+export async function syncPublicBackendConfig({ timeoutMs = 2_500 } = {}) {
+  const current = loadConnection();
+  if (typeof window === "undefined" || typeof window.fetch !== "function") return current;
+
+  try {
+    const signal = typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
+      ? AbortSignal.timeout(Math.max(1, Number(timeoutMs) || 2_500))
+      : undefined;
+    const response = await window.fetch("/api/os/health", {
+      headers: { Accept: "application/json", "X-Hermes-Agent-OS": "1" },
+      ...(signal ? { signal } : {}),
+    });
+    if (!response?.ok) return current;
+    const payload = await response.json();
+    if (payload?.ok === false || !payload?.config || typeof payload.config !== "object") return current;
+
+    const publicConfig = {};
+    if (typeof payload.config.baseUrl === "string") publicConfig.baseUrl = payload.config.baseUrl;
+    if (typeof payload.config.configured === "boolean") publicConfig.configured = payload.config.configured;
+    if (typeof payload.config.apiKeyConfigured === "boolean") {
+      publicConfig.apiKeyConfigured = payload.config.apiKeyConfigured;
+    }
+    const next = sanitizedConfig({ ...current, ...publicConfig });
+    window.localStorage.setItem(CONFIG_KEY, JSON.stringify(next));
+    return { ...next, apiKey: "" };
+  } catch {
+    return current;
+  }
+}
+
 export function loadPersistedOrg() {
   try {
     const raw = window.localStorage.getItem(ORG_KEY);

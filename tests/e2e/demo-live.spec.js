@@ -1,10 +1,11 @@
 import { test, expect } from "@playwright/test";
+import assert from "node:assert/strict";
 
 function connection(mode) {
   return {
     configured: true,
     mode,
-    baseUrl: "http://127.0.0.1:18642",
+    baseUrl: mode === "live" ? "http://127.0.0.1:18643" : "http://127.0.0.1:18642",
     apiKeyConfigured: mode === "live",
     backendManaged: true,
     pollMs: 10_000,
@@ -40,8 +41,25 @@ test("Demo stays local and keeps the frozen interaction model", async ({ page })
 
 test("Live mode uses official sessions, preserves selection, dispatches runs, approves, and stops", async ({ page }) => {
   await setMode(page, "live");
+  const osRequests = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.pathname.startsWith("/api/os/")) {
+      osRequests.push({ method: request.method(), pathname: url.pathname });
+    }
+  });
   await page.goto("/");
   await expect(page.locator("#connection-pill")).toContainText("Hermes live", { timeout: 15_000 });
+  await expect.poll(() => page.evaluate(() => JSON.parse(
+    window.localStorage.getItem("hermes-agent-os:connection-v6") || "{}",
+  ).baseUrl)).toBe("http://127.0.0.1:18642");
+  await expect.poll(() => osRequests.filter((request) => request.pathname === "/api/os/snapshot").length).toBe(1);
+  assert.equal(osRequests.filter((request) => request.method === "POST" && request.pathname === "/api/os/config").length, 0);
+  const healthIndex = osRequests.findIndex((request) => request.method === "GET" && request.pathname === "/api/os/health");
+  const snapshotIndex = osRequests.findIndex((request) => request.method === "GET" && request.pathname === "/api/os/snapshot");
+  assert.ok(healthIndex >= 0);
+  assert.ok(snapshotIndex >= 0);
+  assert.ok(healthIndex < snapshotIndex);
   await expect.poll(() => page.evaluate(() => window.hermesDashboard.getState().floors
     .flatMap((floor) => floor.agents)
     .some((agent) => agent.sessionId === "session-2"))).toBe(true);
@@ -60,7 +78,7 @@ test("Live mode uses official sessions, preserves selection, dispatches runs, ap
   await page.locator("#dispatch-task").fill("approval lifecycle task");
   await page.locator("#dispatch-module").fill("API Server");
   await page.getByRole("button", { name: "Dispatch", exact: true }).click();
-  await expect(page.getByText("Hermes run started", { exact: true })).toBeVisible();
+  await expect(page.getByText("Hermes run started", { exact: true }).last()).toBeVisible();
   await page.getByRole("button", { name: "Approvals", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Approvals" })).toBeVisible();
   const resolve = page.getByRole("button", { name: "Resolve" }).first();
@@ -73,7 +91,7 @@ test("Live mode uses official sessions, preserves selection, dispatches runs, ap
   await page.locator("#dispatch-task").fill("stop lifecycle task");
   await page.locator("#dispatch-module").fill("API Server");
   await page.getByRole("button", { name: "Dispatch", exact: true }).click();
-  await expect(page.getByText("Hermes run started", { exact: true })).toBeVisible();
+  await expect(page.getByText("Hermes run started", { exact: true }).last()).toBeVisible();
   await page.getByRole("button", { name: "Agents", exact: true }).click();
   const stopAgent = page.getByRole("button", { name: /stop lifecycle task/i });
   await expect(stopAgent).toBeVisible({ timeout: 15_000 });

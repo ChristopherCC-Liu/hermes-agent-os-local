@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, stat, rm } from "node:fs/promises";
+import { mkdtemp, readFile, stat, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import http from "node:http";
@@ -49,6 +49,48 @@ test("health and capability contract use the official Hermes service", async (t)
   assert.equal(capabilities.response.status, 200);
   assert.equal(capabilities.data.object, "hermes.api_server.capabilities");
   assert.equal(capabilities.response.headers.get("cache-control"), "no-store");
+});
+
+test("initialize reads disk config when env and options.config are absent, while preserving explicit priority", async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "hermes-bff-config-") );
+  const configPath = path.join(directory, "config.json");
+  await writeFile(configPath, JSON.stringify({ baseUrl: "http://disk.example", apiKey: "disk-test-key" }), { mode: 0o600 });
+  t.after(() => rm(directory, { recursive: true, force: true }));
+
+  const launch = async (env, config) => startBffServer({
+    port: 0,
+    configPath,
+    env,
+    config,
+    fetchImpl: async () => new Response(JSON.stringify({ status: "ok" }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }),
+  });
+
+  const fromDisk = await launch({}, undefined);
+  const diskHealth = await fetch(`http://${fromDisk.host}:${fromDisk.port}/api/os/health`);
+  assert.equal(diskHealth.status, 200);
+  assert.equal(fromDisk.handler.state.config.baseUrl, "http://disk.example");
+  assert.equal(fromDisk.handler.state.config.apiKey, "disk-test-key");
+  await new Promise((resolve) => fromDisk.server.close(resolve));
+
+  const fromOptions = await launch({}, { baseUrl: "http://options.example", apiKey: "options-test-key" });
+  const optionsHealth = await fetch(`http://${fromOptions.host}:${fromOptions.port}/api/os/health`);
+  assert.equal(optionsHealth.status, 200);
+  assert.equal(fromOptions.handler.state.config.baseUrl, "http://options.example");
+  assert.equal(fromOptions.handler.state.config.apiKey, "options-test-key");
+  await new Promise((resolve) => fromOptions.server.close(resolve));
+
+  const fromEnv = await launch(
+    { HERMES_API_URL: "http://env.example", HERMES_API_KEY: "env-test-key" },
+    { baseUrl: "http://options.example", apiKey: "options-test-key" },
+  );
+  const envHealth = await fetch(`http://${fromEnv.host}:${fromEnv.port}/api/os/health`);
+  assert.equal(envHealth.status, 200);
+  assert.equal(fromEnv.handler.state.config.baseUrl, "http://env.example");
+  assert.equal(fromEnv.handler.state.config.apiKey, "env-test-key");
+  await new Promise((resolve) => fromEnv.server.close(resolve));
 });
 
 test("sessions, run creation, status, events, approval and stop are proxied", async (t) => {

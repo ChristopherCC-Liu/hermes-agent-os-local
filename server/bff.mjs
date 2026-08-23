@@ -348,7 +348,7 @@ export function createBffHandler(options = {}) {
         const environment = envConfig(env);
         state.config = {
           ...file,
-          ...state.config,
+          ...(stored || {}),
           ...(environment.baseUrl ? { baseUrl: environment.baseUrl } : {}),
           ...(environment.apiKey ? { apiKey: environment.apiKey } : {}),
         };
