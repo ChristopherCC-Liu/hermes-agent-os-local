@@ -1,10 +1,6 @@
-# Hermes Agent OS v0.1（实用版）
+# Hermes Agent OS v0.1（深色样板）
 
-夜景写字楼 + Claude 米色办公室。点人物看任务，Agent Details 嵌在楼里。
-
-这是 **本地实用版**：打开就是 demo 组织，**不会调用 Grok / xAI / SpaceX**，不消耗 Grok usage。
-
-Live 模式只连接 **你自己的 Hermes API**（默认 `http://127.0.0.1:8642`）。
+夜景写字楼与像素办公室的确定性本地样板。打开后始终显示带 `Demo` 标识的模拟组织；样板本身不会把 fixture 标成 LIVE，也不直接读取 Hermes 私有接口。
 
 ## 本地运行
 
@@ -21,40 +17,26 @@ npm run dev
 
 macOS 也可双击 `start.command`。
 
-`npm run dev` 会先自动 assemble 源文件。
+`npm run dev` 会先自动 assemble 已打包的界面源文件。
 
-## 没接 Hermes 时能做什么
-
-第一次打开是 6 层 demo 组织（Support 拉起 Marketing / SEO / Engineering / Annex / HR）：
+## 样板功能
 
 - 拖动、滚轮 / 双指缩放
 - 点人物看当前任务和 Agent Details
-- Dispatch Task 走本地模拟（**不打 API，不消耗 Grok**）
+- 在本地模拟 Dispatch Task、模块与座位变化
 - Agents / Tasks / Approvals / Analytics / Settings
+- 在矮桌面窗口中保持办公室舞台可见
 
-## 接真实 Hermes
+## 连接本机 Hermes
 
-1. 本机启动 Hermes（API 默认 `http://127.0.0.1:8642`）
-2. 应用里 **Settings → Configure**，选 **Live Hermes**
-3. URL 填 `http://127.0.0.1:8642`
-4. 如需鉴权，粘贴 `API_SERVER_KEY`
-5. **Test connection** → **Save**
+真实数据由已安装的 Hermes host 插件负责，深色样板只做明确的页面交接：
 
-本机地址由 Vite 代理 `/hermes-proxy`，浏览器不会撞 CORS。换端口：
+1. 启动本机 Hermes dashboard：`http://127.0.0.1:9119`。
+2. 在 dashboard 完成登录。
+3. 在样板中打开 **Settings → Open host**，再在弹窗中点击 **Connect Hermes**。
+4. 浏览器进入 `http://127.0.0.1:9119/hermes-agent-os/`，由 host 同源会话读取 snapshot 与 events。
 
-```bash
-HERMES_URL=http://127.0.0.1:YOUR_PORT npm run dev
-```
-
-远程 / 隧道 Hermes 地址会直连，走的是 **你的 Hermes**，不是 Grok。
-
-## Usage
-
-| 操作 | 消耗 Grok usage？ |
-| --- | --- |
-| 打开 demo、点人物、模拟派任务 | 否 |
-| Live Hermes 连你自己的服务器 | 否（Hermes 自己的成本另算） |
-
+连接界面不收集凭据，也不通过 4177 的代理伪造 LIVE。若 host 证据不足，插件应显示对应的 `CONNECTING / STALE / OFFLINE / UNAVAILABLE`，而不是把样板数据当成真实状态。
 
 ## 生产构建
 

@@ -4,10 +4,11 @@ import { mountHermes } from "./hermes/app.js";
 import "./hermes/styles.css";
 import "./hermes/overrides.css";
 
+const suppliedHermesConfig = window.HERMES_CONFIG || {};
 window.HERMES_CONFIG = {
-  mode: "live",
-  baseUrl: "http://127.0.0.1:8642",
-  ...(window.HERMES_CONFIG || {}),
+  ...suppliedHermesConfig,
+  mode: "runtime",
+  hostUrl: suppliedHermesConfig.hostUrl || "http://127.0.0.1:9119",
 };
 
 const root = document.querySelector("#root");

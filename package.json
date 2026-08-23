@@ -3,7 +3,7 @@
   "version": "0.1.1",
   "private": true,
   "type": "module",
-  "description": "Hermes Agent OS — local command center for your Hermes API. No xAI / Grok / SpaceX usage.",
+  "description": "Hermes Agent OS — deterministic local preview with an authenticated Hermes host handoff.",
   "scripts": {
     "assemble": "node scripts/assemble.mjs",
     "predev": "node scripts/assemble.mjs",

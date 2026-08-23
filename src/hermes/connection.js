@@ -1,14 +1,41 @@
 // @ts-nocheck
-const CONFIG_KEY = "hermes-agent-os:connection-v5";
+const CONFIG_KEY = "hermes-agent-os:connection-v6";
 const ORG_KEY = "hermes-agent-os:org-live-v5";
+const LEGACY_CONNECTION_KEYS = [
+  "hermes-agent-os:connection-v1",
+  "hermes-agent-os:connection-v2",
+  "hermes-agent-os:connection-v3",
+  "hermes-agent-os:connection-v4",
+  "hermes-agent-os:connection-v5",
+];
+
+export const DEFAULT_HERMES_HOST = "http://127.0.0.1:9119";
+
+function normalizeHostUrl(value) {
+  try {
+    const url = new URL(String(value || DEFAULT_HERMES_HOST).trim());
+    if (url.protocol !== "http:" && url.protocol !== "https:") return DEFAULT_HERMES_HOST;
+    return url.origin;
+  } catch {
+    return DEFAULT_HERMES_HOST;
+  }
+}
+
+export function hermesPluginUrl(value = DEFAULT_HERMES_HOST) {
+  const url = new URL(normalizeHostUrl(value));
+  url.pathname = "/hermes-agent-os/";
+  return url.href;
+}
+
+function clearLegacyConnectionConfig() {
+  for (const key of LEGACY_CONNECTION_KEYS) window.localStorage.removeItem(key);
+}
 
 export function defaultConnection() {
   return {
     configured: false,
-    mode: "live",
-    baseUrl: "http://127.0.0.1:8642",
-    apiKey: "",
-    pollMs: 5000,
+    mode: "runtime",
+    hostUrl: DEFAULT_HERMES_HOST,
     pruneEmpty: false,
   };
 }
@@ -30,17 +57,14 @@ export function isLocalAppHost() {
 
 export function loadConnection() {
   try {
+    clearLegacyConnectionConfig();
     const raw = window.localStorage.getItem(CONFIG_KEY);
     if (!raw) return defaultConnection();
     const parsed = JSON.parse(raw);
-    const baseUrl = String(parsed.baseUrl || defaultConnection().baseUrl).trim();
-    const mode = parsed.mode === "runtime" ? "runtime" : "live";
     return {
       ...defaultConnection(),
-      ...parsed,
-      baseUrl,
-      pollMs: Math.max(2500, Number(parsed.pollMs) || 5000),
-      mode,
+      configured: parsed.configured === true,
+      hostUrl: normalizeHostUrl(parsed.hostUrl),
     };
   } catch {
     return defaultConnection();
@@ -48,10 +72,12 @@ export function loadConnection() {
 }
 
 export function saveConnection(config) {
-  const next = { ...defaultConnection(), ...config, configured: true };
-  const baseUrl = String(next.baseUrl || "").trim();
-  next.baseUrl = baseUrl || defaultConnection().baseUrl;
-  next.mode = next.mode === "live" && next.baseUrl ? "live" : "runtime";
+  clearLegacyConnectionConfig();
+  const next = {
+    ...defaultConnection(),
+    configured: true,
+    hostUrl: normalizeHostUrl(config?.hostUrl),
+  };
   window.localStorage.setItem(CONFIG_KEY, JSON.stringify(next));
   return next;
 }

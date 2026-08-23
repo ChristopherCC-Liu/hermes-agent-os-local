@@ -11,6 +11,83 @@
   max-height: 248px;
 }
 
+/* The heading is absolutely positioned, so the stage must remain the sole grid row. */
+.overview-panel {
+  grid-template-rows: minmax(0, 1fr) !important;
+}
+
+.workspace,
+.overview-panel,
+.building-stage,
+.building-viewport {
+  min-height: 0;
+}
+
+.building-stage,
+.building-viewport {
+  height: 100%;
+}
+
+@media (max-height: 560px) and (min-width: 721px) {
+  .app-shell,
+  .main-shell,
+  .workspace,
+  .overview-panel,
+  .building-stage {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .topbar {
+    height: 56px;
+  }
+
+  .overview-panel > .panel-heading {
+    top: 56px;
+    height: 44px;
+  }
+
+  .panel-title-group p,
+  .building-legend {
+    display: none;
+  }
+
+  .building-stage > .agent-details {
+    top: 104px;
+    bottom: 8px;
+    max-height: none;
+  }
+
+  .building-stage > .agent-details .agent-details-body {
+    max-height: none;
+  }
+}
+
+@media (max-height: 360px) and (min-width: 721px) {
+  .building-stage > .agent-details .agent-details-header {
+    height: 34px;
+  }
+
+  .building-stage > .agent-details .agent-identity {
+    display: none;
+  }
+
+  .building-stage > .agent-details .agent-tabs {
+    height: 32px;
+  }
+
+  .building-stage > .agent-details .agent-details-footer {
+    height: 44px;
+    padding: 5px 10px;
+  }
+}
+
+@media (max-height: 280px) and (min-width: 721px) {
+  .building-stage > .agent-details .agent-details-footer {
+    display: none;
+  }
+}
+
 @media (max-width: 720px) {
   .building-stage > .agent-details {
     top: auto;

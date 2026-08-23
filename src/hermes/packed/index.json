@@ -5,8 +5,7 @@
       "app.01.b64",
       "app.02.b64",
       "app.03.b64",
-      "app.04.b64",
-      "app.05.b64"
+      "app.04.b64"
     ],
     "data.js": [
       "data.00.b64",
@@ -45,18 +44,17 @@
     ]
   },
   "sha256": {
-    "app.js": "bfeeb24821fcc0d75026cec7add90503d84f1699db98f620b760ee2a0922dc12",
+    "app.js": "d3f269e4637f55761ccbe64dd332ea4c324d12b598bf15a4500a0fd16fc7fc38",
     "building-markup.js": "6c9b5ed64e0cb7378d2b6a7d61ec0db1fecb29d11d448d022bbddfd129a9c76d",
-    "connection.js": "3c382e13e830a761a9ec11b6154c18f6bb05d29142670bfc9506f4df91de19e3",
-    "data.js": "a8c2e2bad3057ae1448c328c64a5ac55c83c401046bb311083476b7b737d0ef7",
-    "hermes-adapter.js": "9613f055cad7d59337949ecadf00463c46eb3e51b8f782d44dc7f4373665c084",
+    "connection.js": "a1c444347cc61819aafbbc557e7d5508badd724d09b49af0cc419f39c1cf2cd7",
+    "data.js": "93f4bba0d37ed2f742d920c45a4c0be328cb8e2635835da695801002fd31f0af",
     "layout.js": "3abc0048dc950bc65f36ff0816378cdd3a8967aaa7cf75ae32b707bb01a0ec53",
     "office-renderer.js": "708c006078d67b127f0e0a3bf6c5717627b12c0615ecbb53f2d728f72c1392f1",
     "org-engine.js": "d1b4367dbae8bcb37d24f47f693777b250b3cde8ad94dcc41513b6e28c53b681",
     "pixel-art.js": "490cef5617f3f23c969bb77f2f4013c8316ef8e9dbad02a2efec93c3411ae50d",
-    "sections.js": "c5238d8e2807ffa8f8038670a23f679ceb493379ad805cbf45d3c16bbd381569",
-    "shell.js": "d8dfb57708d5d9869d09408eef080f452cc29b20eac8c816652eaa0725416ed4",
-    "store.js": "467a809fe10d4db770d99c8ff3853c0024be40708c6466cd0bf12ef5c332f1b6",
+    "sections.js": "49c231000c4433f910a451472759d98c420b247a5f8058e77214a86d5e8b5f5c",
+    "shell.js": "89e3cd345fa01a552ba1ea20ee0e2ccbf577a5c6a8cc04ddd39f981f1ff66746",
+    "store.js": "2300edecd14080ab21781bd479a88a80f7e2bfec843beb44eaf1b19469ee30a1",
     "styles.css": "2dd5fd23842ffdc73e52c25c363a8e0d9d8e817a0fce419dda673d9a186a82f8"
   }
 }
