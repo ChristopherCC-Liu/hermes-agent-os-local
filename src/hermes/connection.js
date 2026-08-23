@@ -13,17 +13,32 @@ export function defaultConnection() {
   };
 }
 
+export function isLoopbackUrl(url) {
+  try {
+    const host = new URL(String(url || "").trim()).hostname.toLowerCase();
+    return host === "127.0.0.1" || host === "localhost" || host === "0.0.0.0" || host === "::1";
+  } catch {
+    return /^(https?:\/\/)?(127\.0\.0\.1|localhost|0\.0\.0\.0|::1)(:|\/|$)/i.test(String(url || ""));
+  }
+}
+
+export function isLocalAppHost() {
+  if (typeof window === "undefined") return false;
+  const host = String(window.location.hostname || "").toLowerCase();
+  return host === "127.0.0.1" || host === "localhost" || host === "0.0.0.0" || host === "::1";
+}
+
 export function loadConnection() {
   try {
     const raw = window.localStorage.getItem(CONFIG_KEY);
     if (!raw) return defaultConnection();
     const parsed = JSON.parse(raw);
-    const baseUrl = String(parsed.baseUrl || "");
-    const localTarget = /^(https?:\/\/)?(127\.0\.0\.1|localhost|0\.0\.0\.0)(:|\/|$)/i.test(baseUrl);
-    const mode = parsed.mode === "live" && baseUrl && !localTarget ? "live" : "runtime";
+    const baseUrl = String(parsed.baseUrl || defaultConnection().baseUrl).trim();
+    const mode = parsed.mode === "live" && baseUrl ? "live" : "runtime";
     return {
       ...defaultConnection(),
       ...parsed,
+      baseUrl,
       pollMs: Math.max(2500, Number(parsed.pollMs) || 5000),
       mode,
     };
@@ -34,6 +49,9 @@ export function loadConnection() {
 
 export function saveConnection(config) {
   const next = { ...defaultConnection(), ...config, configured: true };
+  const baseUrl = String(next.baseUrl || "").trim();
+  next.baseUrl = baseUrl || defaultConnection().baseUrl;
+  next.mode = next.mode === "live" && next.baseUrl ? "live" : "runtime";
   window.localStorage.setItem(CONFIG_KEY, JSON.stringify(next));
   return next;
 }
