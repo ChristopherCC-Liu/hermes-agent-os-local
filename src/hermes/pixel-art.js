@@ -50,17 +50,25 @@ const HAIR_SHAPES = [
   '<rect x="6" y="7" width="20" height="4"/><rect x="4" y="11" width="24" height="5"/><rect x="4" y="16" width="5" height="7"/><rect x="23" y="16" width="5" height="7"/>',
 ];
 
+function visualSeed(agent) {
+  const text = String(agent?.id || agent?.name || "");
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+  return hash;
+}
+
 export function pixelPerson(agent, { small = false, seated = true } = {}) {
   const visual = agent?.visual ?? {};
-  const hairShape = HAIR_SHAPES[(visual.hairStyle ?? 0) % HAIR_SHAPES.length];
-  const hair = visual.hair ?? '#2a1f1d';
-  const skin = visual.skin ?? '#efb37e';
-  const shirt = visual.shirt ?? '#5d6fe8';
-  const accent = visual.accent ?? '#3341a0';
-  const glasses = visual.glasses
+  const seed = visualSeed(agent);
+  const hairShape = HAIR_SHAPES[(visual.hairStyle ?? seed) % HAIR_SHAPES.length];
+  const hair = visual.hair ?? agent?.hair ?? "#2a1f1d";
+  const skin = visual.skin ?? agent?.skin ?? "#efb37e";
+  const shirt = visual.shirt ?? agent?.shirt ?? "#5d6fe8";
+  const accent = visual.accent ?? "#3341a0";
+  const glasses = (visual.glasses ?? seed % 5 === 0)
     ? '<rect x="8" y="15" width="6" height="4" fill="none" stroke="#182038" stroke-width="1.5"/><rect x="18" y="15" width="6" height="4" fill="none" stroke="#182038" stroke-width="1.5"/><rect x="14" y="16" width="4" height="1.5" fill="#182038"/>'
-    : '';
-  return `<svg class="pixel-person ${small ? 'pixel-person--small' : ''} ${agent?.status === 'offline' ? 'is-offline' : ''}" viewBox="0 0 32 48" shape-rendering="crispEdges" role="img" aria-label="${escapeHtml(agent?.name ?? 'Agent')}">
+    : "";
+  return `<svg class="pixel-person ${small ? "pixel-person--small" : ""} ${agent?.status === "offline" ? "is-offline" : ""}" viewBox="0 0 32 48" shape-rendering="crispEdges" role="img" aria-label="${escapeHtml(agent?.name ?? "Agent")}">
     <g fill="${hair}">${hairShape}</g>
     <rect x="8" y="12" width="16" height="13" fill="${skin}"/>
     <rect x="10" y="16" width="3" height="3" fill="#162033"/><rect x="19" y="16" width="3" height="3" fill="#162033"/>

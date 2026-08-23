@@ -1,6 +1,6 @@
 // @ts-nocheck
 const CONFIG_KEY = "hermes-agent-os:connection";
-const ORG_KEY = "hermes-agent-os:org-demo-v1";
+const ORG_KEY = "hermes-agent-os:org-demo-v4";
 
 export function defaultConnection() {
   return {
@@ -18,11 +18,14 @@ export function loadConnection() {
     const raw = window.localStorage.getItem(CONFIG_KEY);
     if (!raw) return defaultConnection();
     const parsed = JSON.parse(raw);
+    const baseUrl = String(parsed.baseUrl || "");
+    const localTarget = /^(https?:\/\/)?(127\.0\.0\.1|localhost|0\.0\.0\.0)(:|\/|$)/i.test(baseUrl);
+    const mode = parsed.mode === "live" && baseUrl && !localTarget ? "live" : "runtime";
     return {
       ...defaultConnection(),
       ...parsed,
       pollMs: Math.max(2500, Number(parsed.pollMs) || 5000),
-      mode: parsed.mode === "live" ? "live" : "runtime",
+      mode,
     };
   } catch {
     return defaultConnection();

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { fetchHermesSnapshot } from "../gateway.js";
+import { fetchHermesSnapshot } from "@/lib/hermes-gateway";
 import { projectHermesSnapshot } from "./org-engine.js";
 
 function normalizeConfig(config = {}) {

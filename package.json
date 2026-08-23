@@ -1,9 +1,9 @@
 {
   "name": "hermes-agent-os",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
-  "description": "Hermes Agent OS v0.1 — local Hermes client, no xAI",
+  "description": "Hermes Agent OS — local command center for your Hermes API. No xAI / Grok / SpaceX usage.",
   "scripts": {
     "assemble": "node scripts/assemble.mjs",
     "predev": "node scripts/assemble.mjs",
