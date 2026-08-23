@@ -1,11 +1,11 @@
 // @ts-nocheck
-const CONFIG_KEY = "hermes-agent-os:connection";
+const CONFIG_KEY = "hermes-agent-os:connection-v5";
 const ORG_KEY = "hermes-agent-os:org-demo-v4";
 
 export function defaultConnection() {
   return {
     configured: false,
-    mode: "runtime",
+    mode: "live",
     baseUrl: "http://127.0.0.1:8642",
     apiKey: "",
     pollMs: 5000,
@@ -34,7 +34,7 @@ export function loadConnection() {
     if (!raw) return defaultConnection();
     const parsed = JSON.parse(raw);
     const baseUrl = String(parsed.baseUrl || defaultConnection().baseUrl).trim();
-    const mode = parsed.mode === "live" && baseUrl ? "live" : "runtime";
+    const mode = parsed.mode === "runtime" ? "runtime" : "live";
     return {
       ...defaultConnection(),
       ...parsed,
