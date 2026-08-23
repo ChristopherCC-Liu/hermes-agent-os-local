@@ -1,6 +1,6 @@
 // @ts-nocheck
 const CONFIG_KEY = "hermes-agent-os:connection-v5";
-const ORG_KEY = "hermes-agent-os:org-demo-v4";
+const ORG_KEY = "hermes-agent-os:org-live-v5";
 
 export function defaultConnection() {
   return {
