@@ -11,6 +11,10 @@
   max-height: 248px;
 }
 
+.app-shell .demo-chip[hidden] {
+  display: none !important;
+}
+
 @media (max-width: 720px) {
   .building-stage > .agent-details {
     top: auto;

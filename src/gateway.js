@@ -1,52 +1,38 @@
-const FETCH_TIMEOUT_MS = 10_000;
+const FETCH_TIMEOUT_MS = 12_000;
+const MUTATION_HEADER = "X-Hermes-Agent-OS";
 
 function asRecord(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
 
-function asList(value) {
-  if (Array.isArray(value)) return value;
-  if (!value || typeof value !== "object") return [];
-  for (const key of ["sessions", "items", "data", "jobs", "skills", "toolsets", "results", "platforms"]) {
-    if (Array.isArray(value[key])) return value[key];
-  }
-  return [];
+function errorMessage(payload, fallback) {
+  const record = asRecord(payload);
+  const nested = asRecord(record.error);
+  return String(record.message || record.detail || nested.message || record.error || fallback);
 }
 
-function resolveOrigin(baseUrl) {
-  const trimmed = String(baseUrl || "").trim().replace(/\/+$/, "");
-  if (!trimmed) return "";
-  try {
-    const url = new URL(trimmed);
-    if (url.hostname === "127.0.0.1" || url.hostname === "localhost") {
-      return "/hermes-proxy";
-    }
-    return `${url.origin}${url.pathname.replace(/\/+$/, "")}`;
-  } catch {
-    return trimmed;
-  }
+async function waitForBackendConfiguration() {
+  if (typeof window === "undefined") return;
+  const pending = window.__HERMES_BACKEND_CONFIG_READY__;
+  if (pending && typeof pending.then === "function") await pending;
 }
 
-async function hermesFetch(creds, path, init = {}) {
-  const origin = resolveOrigin(creds.baseUrl);
-  if (!origin) {
-    return { ok: false, status: 400, error: "Enter a Hermes base URL.", path };
-  }
-  const target = `${origin}${path.startsWith("/") ? path : `/${path}`}`;
+async function osFetch(path, init = {}) {
+  await waitForBackendConfiguration();
   const headers = new Headers(init.headers || {});
-  if (!headers.has("Accept")) headers.set("Accept", "application/json");
+  headers.set("Accept", init.accept || "application/json");
+  headers.set(MUTATION_HEADER, "1");
   if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  if (creds.apiKey) headers.set("Authorization", `Bearer ${creds.apiKey}`);
 
   try {
-    const response = await fetch(target, {
+    const response = await fetch(path, {
       method: init.method || "GET",
       headers,
       body: init.body,
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      signal: AbortSignal.timeout(init.timeoutMs || FETCH_TIMEOUT_MS),
     });
     const text = await response.text();
-    let data = text;
+    let data = null;
     if (text) {
       try {
         data = JSON.parse(text);
@@ -55,159 +41,122 @@ async function hermesFetch(creds, path, init = {}) {
       }
     }
     if (!response.ok) {
-      const record = asRecord(data);
       return {
         ok: false,
         status: response.status,
-        error: String(record.error || record.message || record.detail || `Hermes returned ${response.status}`),
-        path,
+        code: String(asRecord(data).code || asRecord(asRecord(data).error).code || "OS_REQUEST_FAILED"),
+        error: errorMessage(data, `Agent OS returned ${response.status}`),
       };
     }
-    return { ok: true, status: response.status, data };
+    return { ok: true, status: response.status, data: asRecord(data) };
   } catch (error) {
-    const message =
-      error instanceof Error && error.name === "TimeoutError"
-        ? "Hermes timed out."
-        : error instanceof Error
-          ? error.message
-          : "Hermes request failed.";
-    return { ok: false, status: 0, error: message, path };
+    const timedOut = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
+    return {
+      ok: false,
+      status: 0,
+      code: timedOut ? "OS_TIMEOUT" : "OS_UNREACHABLE",
+      error: timedOut ? "Local Agent OS timed out." : error instanceof Error ? error.message : "Local Agent OS request failed.",
+    };
   }
 }
 
-async function firstOk(creds, paths) {
-  const errors = [];
-  for (const path of paths) {
-    const result = await hermesFetch(creds, path);
-    if (result.ok) return { result, errors };
-    errors.push({ path: result.path, status: result.status, error: result.error });
-  }
-  return { result: null, errors };
+async function configureBackend(data = {}) {
+  const body = {
+    baseUrl: String(data.baseUrl || "").trim(),
+  };
+  const apiKey = String(data.apiKey || "");
+  if (apiKey) body.apiKey = apiKey;
+  if (!body.baseUrl && !apiKey) return { ok: true, skipped: true };
+  return osFetch("/api/os/config", { method: "POST", body: JSON.stringify(body) });
 }
 
 export async function probeHermes({ data } = {}) {
-  const creds = { baseUrl: String(data?.baseUrl || ""), apiKey: String(data?.apiKey || "") };
-  const health = await firstOk(creds, ["/health", "/v1/health", "/api/status"]);
-  if (!health.result) {
-    const last = health.errors[health.errors.length - 1];
+  const configured = await configureBackend(data);
+  if (!configured.ok) return configured;
+  const [health, capabilities] = await Promise.all([
+    osFetch("/api/os/health"),
+    osFetch("/api/os/capabilities"),
+  ]);
+  if (!health.ok) return health;
+  if (!capabilities.ok) return capabilities;
+  const healthData = health.data;
+  const capabilityData = capabilities.data;
+  if (healthData.ok === false || capabilityData.ok === false) {
+    const blocked = healthData.ok === false ? healthData : capabilityData;
     return {
       ok: false,
-      status: last?.status,
-      error:
-        last?.error ||
-        "Could not reach Hermes. On this computer, start the Hermes API server and use http://127.0.0.1:8642.",
+      status: Number(blocked.status || 503),
+      code: String(blocked.code || "BLOCKED_INCOMPATIBLE"),
+      error: errorMessage(blocked, "Hermes API Server is not ready."),
     };
   }
-  const capabilities = await firstOk(creds, ["/v1/capabilities"]);
-  const status = await firstOk(creds, ["/api/status", "/health/detailed"]);
-  const endpoints = [
-    health.result ? "health" : "",
-    capabilities.result ? "capabilities" : "",
-    status.result ? "status" : "",
-  ].filter(Boolean);
-  const warnings = [];
-  if (!creds.apiKey) warnings.push("No API key sent. Private Hermes routes will 401 until you add API_SERVER_KEY.");
-  if (!capabilities.result) warnings.push("Capabilities endpoint was not available. Session control may be limited.");
   return {
     ok: true,
-    health: health.result.data,
-    capabilities: capabilities.result?.data ?? null,
-    status: status.result?.data ?? null,
-    endpoints,
-    warnings,
+    health: healthData.health || healthData,
+    capabilities: capabilityData.capabilities || capabilityData,
+    endpoints: ["health", "capabilities"],
+    warnings: Array.isArray(capabilityData.warnings) ? capabilityData.warnings : [],
   };
 }
 
-export async function fetchHermesSnapshot({ data } = {}) {
-  const creds = { baseUrl: String(data?.baseUrl || ""), apiKey: String(data?.apiKey || "") };
-  const [health, capabilities, status, sessions, skills, toolsets, jobs, usage] = await Promise.all([
-    firstOk(creds, ["/health/detailed", "/health", "/v1/health"]),
-    firstOk(creds, ["/v1/capabilities"]),
-    firstOk(creds, ["/api/status"]),
-    firstOk(creds, ["/api/sessions?limit=80&include_children=true", "/api/sessions?limit=80", "/api/sessions"]),
-    firstOk(creds, ["/v1/skills", "/api/skills"]),
-    firstOk(creds, ["/v1/toolsets", "/api/tools/toolsets"]),
-    firstOk(creds, ["/api/jobs", "/api/cron/jobs"]),
-    firstOk(creds, ["/api/analytics/usage?days=7", "/api/analytics/usage"]),
-  ]);
-
-  if (!health.result && !status.result && !sessions.result) {
-    const last =
-      sessions.errors[sessions.errors.length - 1] ||
-      health.errors[health.errors.length - 1] ||
-      status.errors[status.errors.length - 1];
+export async function fetchHermesSnapshot() {
+  const result = await osFetch("/api/os/snapshot", { timeoutMs: 20_000 });
+  if (!result.ok) return result;
+  if (result.data.ok === false) {
     return {
       ok: false,
-      error: last?.error || "Hermes did not return a snapshot.",
-      status: last?.status ?? 0,
+      status: Number(result.data.status || 503),
+      code: String(result.data.code || "BLOCKED_INCOMPATIBLE"),
+      error: errorMessage(result.data, "Hermes snapshot is unavailable."),
     };
   }
+  return { ok: true, ...result.data };
+}
 
-  return {
-    ok: true,
-    fetchedAt: Date.now(),
-    health: health.result?.data ?? null,
-    capabilities: capabilities.result?.data ?? null,
-    status: status.result?.data ?? null,
-    sessions: asList(sessions.result?.data ?? null),
-    skills: asList(skills.result?.data ?? null),
-    toolsets: asList(toolsets.result?.data ?? null),
-    jobs: asList(jobs.result?.data ?? null),
-    usage: usage.result?.data ?? null,
-    errors: [...sessions.errors, ...skills.errors, ...toolsets.errors, ...jobs.errors, ...usage.errors].filter(
-      (item) => item.status !== 404,
-    ),
-  };
+export async function fetchHermesRun(runId) {
+  if (!runId) return { ok: false, status: 400, error: "Missing run id." };
+  const result = await osFetch(`/api/os/runs/${encodeURIComponent(runId)}`);
+  return result.ok ? { ok: true, ...result.data } : result;
 }
 
 export async function dispatchHermesAction({ data } = {}) {
-  const creds = { baseUrl: String(data?.baseUrl || ""), apiKey: String(data?.apiKey || "") };
   const action = String(data?.action || "").trim();
 
   if (action === "create_session") {
-    const result = await hermesFetch(creds, "/api/sessions", {
+    const result = await osFetch("/api/os/sessions", {
       method: "POST",
-      body: JSON.stringify({ title: data.title || "Agent OS task" }),
+      body: JSON.stringify({ title: data?.title || "Agent OS task" }),
     });
-    if (!result.ok) return { ok: false, error: result.error, status: result.status };
-    return { ok: true, data: result.data, via: "session.create" };
+    return result.ok ? { ok: true, data: result.data, via: "session.create" } : result;
   }
 
   if (action === "chat") {
-    if (!data.sessionId) return { ok: false, error: "Missing session id.", status: 400 };
-    if (!data.input) return { ok: false, error: "Task prompt is empty.", status: 400 };
-    const chat = await hermesFetch(creds, `/api/sessions/${encodeURIComponent(data.sessionId)}/chat`, {
+    if (!data?.sessionId) return { ok: false, status: 400, error: "Missing session id." };
+    if (!String(data?.input || "").trim()) return { ok: false, status: 400, error: "Task prompt is empty." };
+    const result = await osFetch(`/api/os/sessions/${encodeURIComponent(data.sessionId)}/chat`, {
       method: "POST",
-      body: JSON.stringify({ input: data.input }),
+      body: JSON.stringify({ input: String(data.input) }),
     });
-    if (chat.ok) return { ok: true, data: chat.data, via: "session.chat" };
-    const run = await hermesFetch(creds, "/v1/runs", {
-      method: "POST",
-      body: JSON.stringify({ input: data.input, session_id: data.sessionId }),
-    });
-    if (run.ok) return { ok: true, data: run.data, via: "runs" };
-    return { ok: false, error: chat.error, status: chat.status };
+    return result.ok ? { ok: true, data: result.data, via: "runs" } : result;
   }
 
   if (action === "approve_run") {
-    if (!data.runId) return { ok: false, error: "Missing run id.", status: 400 };
-    const result = await hermesFetch(creds, `/v1/runs/${encodeURIComponent(data.runId)}/approval`, {
+    if (!data?.runId) return { ok: false, status: 400, error: "Missing run id." };
+    const result = await osFetch(`/api/os/runs/${encodeURIComponent(data.runId)}/approval`, {
       method: "POST",
-      body: JSON.stringify({ decision: data.decision || "approve" }),
+      body: JSON.stringify({ decision: data.decision || "approve", all: data.all === true }),
     });
-    if (!result.ok) return { ok: false, error: result.error, status: result.status };
-    return { ok: true, data: result.data, via: "approval" };
+    return result.ok ? { ok: true, data: result.data, via: "approval" } : result;
   }
 
   if (action === "stop_run") {
-    if (!data.runId) return { ok: false, error: "Missing run id.", status: 400 };
-    const result = await hermesFetch(creds, `/v1/runs/${encodeURIComponent(data.runId)}/stop`, {
+    if (!data?.runId) return { ok: false, status: 400, error: "Missing run id." };
+    const result = await osFetch(`/api/os/runs/${encodeURIComponent(data.runId)}/stop`, {
       method: "POST",
       body: JSON.stringify({}),
     });
-    if (!result.ok) return { ok: false, error: result.error, status: result.status };
-    return { ok: true, data: result.data, via: "stop" };
+    return result.ok ? { ok: true, data: result.data, via: "stop" } : result;
   }
 
-  return { ok: false, error: `Unknown Hermes action: ${action}`, status: 400 };
+  return { ok: false, status: 400, error: `Unknown Hermes action: ${action}` };
 }

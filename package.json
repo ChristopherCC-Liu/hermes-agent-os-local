@@ -7,15 +7,24 @@
   "scripts": {
     "assemble": "node scripts/assemble.mjs",
     "predev": "node scripts/assemble.mjs",
-    "prestart": "node scripts/assemble.mjs",
+    "prestart": "npm run build",
     "prebuild": "node scripts/assemble.mjs",
-    "prepreview": "node scripts/assemble.mjs",
-    "dev": "vite --host 127.0.0.1 --port 4177",
-    "start": "vite --host 127.0.0.1 --port 4177",
+    "prepreview": "npm run build",
+    "dev": "node server/index.mjs --dev",
+    "start": "node server/index.mjs --production",
     "build": "vite build",
-    "preview": "vite preview --host 127.0.0.1 --port 4177"
+    "preview": "node server/index.mjs --production",
+    "test": "npm run test:unit",
+    "test:unit": "npm run assemble && node --test tests/client/*.test.js tests/server/*.test.mjs",
+    "pretest:e2e": "npm run assemble",
+    "test:e2e": "playwright test --grep-invert @visual",
+    "pretest:visual": "npm run assemble",
+    "test:visual": "playwright test --grep @visual",
+    "smoke:hermes": "node scripts/smoke-hermes.mjs",
+    "check": "npm run test:unit && npm run build && npm run test:e2e && npm run test:visual"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "vite": "^6.3.5"
   }
 }

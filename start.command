@@ -1,4 +1,6 @@
 #!/bin/bash
 cd "$(dirname "$0")"
-npm install
-npm run dev
+if [ ! -d node_modules ]; then
+  npm install
+fi
+npm start
