@@ -1,6 +1,7 @@
 import { createShellHTML } from "./hermes/shell.js";
 import { mountHermes } from "./hermes/app.js";
 import "./hermes/styles.css";
+import "./hermes/overrides.css";
 
 const root = document.querySelector("#root");
 if (!root) {

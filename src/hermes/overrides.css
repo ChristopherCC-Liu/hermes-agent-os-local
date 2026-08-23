@@ -1,0 +1,22 @@
+/* Unpacked overlay so GitHub can ship UI tweaks without repacking styles.css */
+.building-stage > .agent-details {
+  top: auto;
+  right: 16px;
+  bottom: 20px;
+  left: auto;
+  max-height: min(675px, calc(100% - 72px));
+}
+
+.agent-details-body {
+  max-height: 248px;
+}
+
+@media (max-width: 720px) {
+  .building-stage > .agent-details {
+    top: auto;
+    right: 8px;
+    left: 8px;
+    bottom: calc(58px + env(safe-area-inset-bottom, 0px));
+    max-height: min(62vh, 500px);
+  }
+}
