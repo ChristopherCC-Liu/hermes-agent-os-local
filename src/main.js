@@ -1,3 +1,4 @@
+import "./hermes/store-patch.js";
 import { createShellHTML } from "./hermes/shell.js";
 import { mountHermes } from "./hermes/app.js";
 import "./hermes/styles.css";
