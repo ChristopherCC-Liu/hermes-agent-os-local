@@ -54,7 +54,7 @@ HERMES_URL=http://127.0.0.1:YOUR_PORT npm run dev
 | --- | --- |
 | 打开 demo、点人物、模拟派任务 | 否 |
 | Live Hermes 连你自己的服务器 | 否（Hermes 自己的成本另算） |
-| 旧的 “Start local runtime” 调 grok-4.5 | **已删除** |
+
 
 ## 生产构建
 
